@@ -43,15 +43,15 @@ def is_recent(date_string: str, days: int = 7):
 
 def filter_recent_articles(articles, days: int = 7):
     return articles
-   # filtered = []
-#   for article in articles:
- #       date_string = article.get("date")
-#
+    filtered = []
+   for article in articles:
+        date_string = article.get("date")
+
         # If no meta date found, try extracting from text
- #       if not date_string:
-  #          date_string = extract_date_from_text(article.get("content", ""))
-#
- #       if is_recent(date_string, days):
-  #          filtered.append(article)
-#
- #   return filtered
+        if not date_string:
+            date_string = extract_date_from_text(article.get("content", ""))
+
+        if is_recent(date_string, days):
+            filtered.append(article)
+
+    return filtered
