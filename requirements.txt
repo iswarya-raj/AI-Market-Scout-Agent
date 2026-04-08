@@ -5,3 +5,4 @@ groq
 reportlab
 beautifulsoup4
 requests
+duckduckgo-search
