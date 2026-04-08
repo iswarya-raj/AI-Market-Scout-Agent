@@ -55,7 +55,6 @@ company = st.sidebar.text_input(
     placeholder="Example: OpenAI"
 )
 
-# ✅ NEW: Competitor Mode Input
 st.sidebar.markdown("---")
 st.sidebar.subheader("Competitor Mode")
 
@@ -90,7 +89,7 @@ if run_agent:
     progress = st.progress(0)
 
     # =========================================================
-    # 🔵 COMPETITOR MODE
+    # COMPETITOR MODE
     # =========================================================
     if competitor_list:
 
@@ -99,9 +98,14 @@ if run_agent:
         comparison_data = []
         full_reports = {}
 
-        for comp in competitor_list:
+        total = len(competitor_list)
 
-            status.info(f"Processing {comp}...")
+        for idx, comp in enumerate(competitor_list):
+
+            # FIX: Show per-company progress in competitor mode
+            pct = int((idx / total) * 90)
+            progress.progress(pct)
+            status.info(f"Processing {comp} ({idx + 1} of {total})...")
 
             result = generate_search_queries(comp)
             queries = result["queries"]
@@ -129,18 +133,23 @@ if run_agent:
 
             full_reports[comp] = brief
 
+            # FIX: Truncate preview with ellipsis instead of hard cut
+            preview = brief[:150].rstrip() + "..." if len(brief) > 150 else brief
+
             comparison_data.append({
                 "Company": comp,
                 "Articles Found": len(all_articles),
                 "Recent Articles": len(recent_articles),
-                "Insights Preview": brief[:150]
+                "Insights Preview": preview
             })
+
+        progress.progress(100)
+        status.success("All companies processed")
 
         # -----------------------------
         # TABLE VIEW
         # -----------------------------
         df = pd.DataFrame(comparison_data)
-
         st.dataframe(df, use_container_width=True)
 
         # -----------------------------
@@ -153,19 +162,20 @@ if run_agent:
         for i, comp in enumerate(competitor_list):
             with cols[i]:
                 st.markdown(f"#### {comp}")
-                st.write(full_reports[comp][:500])
+                # FIX: Truncate with ellipsis and render as markdown instead of raw text
+                preview_text = full_reports[comp][:500].rstrip() + "..." if len(full_reports[comp]) > 500 else full_reports[comp]
+                st.markdown(preview_text)
 
         # -----------------------------
-        # 🧠 WHO IS LEADING (AI SUMMARY)
+        # WHO IS LEADING (AI SUMMARY)
         # -----------------------------
         st.markdown("### 🏆 Who is Leading?")
 
-        # simple logic (you can upgrade later with AI)
         best_company = max(comparison_data, key=lambda x: x["Recent Articles"])
 
         st.success(
-            f"{best_company['Company']} appears to be leading based on recent activity "
-            f"with {best_company['Recent Articles']} recent updates."
+            f"**{best_company['Company']}** appears to be leading based on recent activity "
+            f"with **{best_company['Recent Articles']}** recent updates in the last 7 days."
         )
 
         # -----------------------------
@@ -175,12 +185,13 @@ if run_agent:
 
         for comp in competitor_list:
             with st.expander(f"{comp} Full Report"):
-                st.write(full_reports[comp])
+                # FIX: Render as markdown instead of raw text for proper formatting
+                st.markdown(full_reports[comp])
 
         st.stop()
 
     # =========================================================
-    # 🟢 NORMAL MODE (UNCHANGED)
+    # NORMAL MODE
     # =========================================================
     if not company:
         st.warning("Please enter a competitor company name.")
@@ -259,7 +270,8 @@ if run_agent:
 
     st.markdown("### Competitor Briefing Report")
 
-    st.markdown(f"<pre>{briefing}</pre>", unsafe_allow_html=True)
+    # FIX: Render briefing as markdown instead of raw <pre> block
+    st.markdown(briefing)
 
     pdf = create_pdf(briefing)
 
@@ -269,3 +281,6 @@ if run_agent:
         file_name="competitor_briefing.pdf",
         mime="application/pdf"
     )
+
+    # FIX: Explicitly stop after normal mode completes
+    st.stop()
