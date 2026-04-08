@@ -8,9 +8,6 @@ load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-print("API KEY:", os.getenv("GROQ_API_KEY"))
-
-
 # -----------------------------
 # RETRY FUNCTION
 # -----------------------------
