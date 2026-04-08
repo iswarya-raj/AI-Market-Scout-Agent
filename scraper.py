@@ -1,7 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from ddgs import DDGS
-
+from duckduckgo_search import DDGS
 
 # Domains we want to avoid
 BLOCKED_DOMAINS = [
