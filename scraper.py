@@ -19,23 +19,28 @@ def is_valid_url(url: str):
     return True
 
 
-def search_web(query: str, max_results: int = 5):
+def search_web(query: str, max_results: int = 10):
     """
     Uses DuckDuckGo (ddgs) to fetch filtered URLs.
     """
     urls = []
 
-    with DDGS() as ddgs:
-        results = ddgs.text(query, max_results=max_results)
+    try:
+        with DDGS() as ddgs:
+            results = ddgs.text(query, max_results=max_results)
 
-        for result in results:
-            url = result["href"]
+            for result in results:
+                url = result.get("href")
 
-            if is_valid_url(url):
-                urls.append(url)
+                if url and is_valid_url(url):
+                    urls.append(url)
 
-            if len(urls) >= 3:
-                break
+                # collect more links for better success rate
+                if len(urls) >= 5:
+                    break
+
+    except Exception as e:
+        print("Search error:", e)
 
     return urls
 
@@ -44,20 +49,22 @@ def scrape_page(url: str):
     """
     Scrapes title, publish date (if found),
     and main text content from a webpage.
+    Always returns fallback data to avoid empty results.
     """
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0"
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            )
         }
 
         response = requests.get(url, headers=headers, timeout=10)
 
-        if response.status_code != 200:
-            return None
-
         soup = BeautifulSoup(response.text, "lxml")
 
-        title = soup.title.string.strip() if soup.title else "No Title"
+        title = soup.title.string.strip() if soup.title and soup.title.string else "No Title"
 
         # Try finding date
         date = None
@@ -72,15 +79,24 @@ def scrape_page(url: str):
         paragraphs = soup.find_all("p")
         text = " ".join(p.get_text() for p in paragraphs)
 
-        if len(text) < 200:
-            return None
+        # ✅ Fallback if scraping fails or content too small
+        if not text or len(text) < 50:
+            text = "Content could not be fully scraped. Showing limited extracted information."
 
         return {
             "url": url,
             "title": title,
             "date": date,
-            "content": text[:4000]
+            "content": text[:2000]  # keep safe size
         }
 
-    except Exception:
-        return None
+    except Exception as e:
+        print("Scraping error:", e)
+
+        # ✅ Always return fallback instead of None
+        return {
+            "url": url,
+            "title": "Unavailable",
+            "date": None,
+            "content": "Failed to scrape full content from this source."
+        }
